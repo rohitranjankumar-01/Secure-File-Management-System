@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SecureFS — Secure File Management System</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">🔐 SecureFS</div>
+  <div style="display:flex;gap:.5rem">
+    <a href="login.html"    class="btn btn-ghost">Login</a>
+    <a href="register.html" class="btn btn-primary">Get Started</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">B.Tech 2nd Year — OS Security Project</div>
+    <h1 class="hero-title">
+      Secure File Storage<br>
+      <span class="grad">with Military-Grade Encryption</span>
+    </h1>
+    <p class="hero-sub">
+      AES-128 encryption &middot; TOTP two-factor auth &middot; bcrypt hashing
+      &middot; Threat detection &middot; Discretionary access control
+    </p>
+    <div class="hero-btns">
+      <a href="register.html" class="btn btn-primary btn-lg">Create Account</a>
+      <a href="login.html"    class="btn btn-outline btn-lg">Sign In</a>
+    </div>
+  </div>
+  <div class="feat-grid">
+    <div class="feat-card"><div class="feat-icon">🔒</div><div class="feat-label">AES-128 Encryption</div></div>
+    <div class="feat-card"><div class="feat-icon">📱</div><div class="feat-label">TOTP 2FA</div></div>
+    <div class="feat-card"><div class="feat-icon">🛡️</div><div class="feat-label">Threat Detection</div></div>
+    <div class="feat-card"><div class="feat-icon">📁</div><div class="feat-label">Secure Sharing</div></div>
+    <div class="feat-card"><div class="feat-icon">📊</div><div class="feat-label">Audit Logs</div></div>
+    <div class="feat-card"><div class="feat-icon">🔑</div><div class="feat-label">Access Control</div></div>
+  </div>
+</section>
+
+<section class="features-section">
+  <h2 class="sec-title">System Architecture</h2>
+  <div class="arch-grid">
+    <div class="arch-card"><h3>Presentation Layer</h3><p>HTML5 + CSS3 + JavaScript frontend served directly by Flask</p></div>
+    <div class="arch-card"><h3>Application Layer</h3><p>Python Flask REST API handling auth, file ops, and session management</p></div>
+    <div class="arch-card"><h3>Security Layer</h3><p>bcrypt passwords · pyotp TOTP · Fernet AES · brute-force lockout</p></div>
+    <div class="arch-card"><h3>Storage Layer</h3><p>All files encrypted on disk. SQLite stores only metadata, never plaintext</p></div>
+  </div>
+</section>
+
+<footer class="footer">
+  SecureFS &mdash; B.Tech 2nd Year Operating Systems Security Project &mdash; Built with Flask &amp; Python
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
