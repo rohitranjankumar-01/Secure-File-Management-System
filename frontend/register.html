@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register — SecureFS</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+
+  <!-- Step 1: Registration form -->
+  <div class="auth-card" id="formCard">
+    <a href="index.html" class="back-link">← Back</a>
+    <div class="auth-head">
+      <div class="auth-logo">🔐 SecureFS</div>
+      <h2>Create Account</h2>
+      <p class="auth-sub">Your password is bcrypt-hashed. We never store it in plain text.</p>
+    </div>
+
+    <form id="regForm" onsubmit="doRegister(event)">
+      <div class="fg">
+        <label>Username</label>
+        <input type="text" id="u" placeholder="e.g. john_doe" required minlength="3" autocomplete="username">
+      </div>
+      <div class="fg">
+        <label>Email</label>
+        <input type="email" id="e" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <div class="inp-wrap">
+          <input type="password" id="p" placeholder="Min 8 chars, uppercase, digit, symbol" required autocomplete="new-password" oninput="document.getElementById('pstr').innerHTML=pwStrength(this.value)">
+          <button type="button" class="eye-btn" onclick="togglePw('p')">👁</button>
+        </div>
+        <div class="pw-wrap" id="pstr"></div>
+      </div>
+      <div class="fg">
+        <label>Confirm Password</label>
+        <div class="inp-wrap">
+          <input type="password" id="cp" placeholder="Repeat password" required autocomplete="new-password">
+          <button type="button" class="eye-btn" onclick="togglePw('cp')">👁</button>
+        </div>
+      </div>
+      <div class="msg" id="rmsg"></div>
+      <button type="submit" class="btn btn-primary btn-full" id="rbtn">Create Secure Account</button>
+    </form>
+    <p class="auth-foot">Already have an account? <a href="login.html">Sign in</a></p>
+  </div>
+
+  <!-- Step 2: 2FA QR code (shown after success) -->
+  <div class="auth-card hidden" id="qrCard">
+    <div class="auth-head">
+      <div class="auth-logo">📱 Setup 2FA</div>
+      <h2>Scan QR Code</h2>
+      <p class="auth-sub">Open Google Authenticator or Authy and scan this code</p>
+    </div>
+    <div class="qr-box"><img id="qrImg" src="" alt="2FA QR Code" class="qr-img"></div>
+    <div class="secret-box">
+      <small>Manual entry secret (if camera doesn't work):</small>
+      <span class="secret-code" id="totpSec"></span>
+    </div>
+    <div class="steps">
+      <div class="step"><span class="step-n">1</span>Install Google Authenticator from Play Store / App Store</div>
+      <div class="step"><span class="step-n">2</span>Tap "+" → "Scan QR code" → scan the image above</div>
+      <div class="step"><span class="step-n">3</span>A 6-digit code appears — enter it when you log in</div>
+    </div>
+    <a href="login.html" class="btn btn-primary btn-full" style="margin-top:1rem">Go to Login →</a>
+  </div>
+
+</div>
+<script src="js/main.js"></script>
+<script>
+async function doRegister(e) {
+  e.preventDefault();
+  const btn = document.getElementById('rbtn');
+  const msg = document.getElementById('rmsg');
+  if (document.getElementById('p').value !== document.getElementById('cp').value) {
+    showMsg(msg, 'Passwords do not match.', 'err'); return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Creating account...';
+
+  const res  = await fetch('/api/register', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ username: document.getElementById('u').value,
+                           email:    document.getElementById('e').value,
+                           password: document.getElementById('p').value })
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById('formCard').classList.add('hidden');
+    document.getElementById('qrCard').classList.remove('hidden');
+    document.getElementById('qrImg').src      = 'data:image/png;base64,' + data.qr_code;
+    document.getElementById('totpSec').textContent = data.totp_secret;
+  } else {
+    showMsg(msg, data.msg, 'err');
+    btn.disabled = false;
+    btn.textContent = 'Create Secure Account';
+  }
+}
+</script>
+</body>
+</html>

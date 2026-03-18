@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — SecureFS</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+
+  <!-- Step 1: Password -->
+  <div class="auth-card" id="step1">
+    <a href="index.html" class="back-link">← Back</a>
+    <div class="auth-head">
+      <div class="auth-logo">🔐 SecureFS</div>
+      <h2>Welcome Back</h2>
+      <p class="auth-sub">Step 1 of 2 — Enter your credentials</p>
+    </div>
+    <form onsubmit="doLogin(event)">
+      <div class="fg">
+        <label>Username</label>
+        <input type="text" id="lu" placeholder="your_username" required autocomplete="username">
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <div class="inp-wrap">
+          <input type="password" id="lp" placeholder="Your password" required autocomplete="current-password">
+          <button type="button" class="eye-btn" onclick="togglePw('lp')">👁</button>
+        </div>
+      </div>
+      <div class="msg" id="lmsg"></div>
+      <button type="submit" class="btn btn-primary btn-full" id="lbtn">Continue →</button>
+    </form>
+    <p class="auth-foot">No account? <a href="register.html">Register here</a></p>
+  </div>
+
+  <!-- Step 2: 2FA -->
+  <div class="auth-card hidden" id="step2">
+    <div class="auth-head">
+      <div class="auth-logo">📱 SecureFS</div>
+      <h2>Two-Factor Verification</h2>
+      <p class="auth-sub">Step 2 of 2 — Enter the 6-digit code from your authenticator app</p>
+    </div>
+
+    <!-- Shown only on very first login (2FA not yet confirmed) -->
+    <div id="qrSetup" class="hidden">
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.75rem;">
+        First time? Scan this QR code with Google Authenticator:
+      </p>
+      <div class="qr-box"><img id="loginQr" src="" alt="QR" class="qr-img"></div>
+      <div class="secret-box">
+        <small>Manual entry secret:</small>
+        <span class="secret-code" id="loginSecret"></span>
+      </div>
+    </div>
+
+    <form onsubmit="do2FA(event)">
+      <div class="fg" style="margin-top:1rem">
+        <label>6-Digit Code</label>
+        <input type="text" id="otp" placeholder="123456" maxlength="6"
+               inputmode="numeric" pattern="[0-9]{6}" required
+               autocomplete="one-time-code"
+               style="font-family:'JetBrains Mono',monospace;font-size:1.3rem;letter-spacing:.2em;text-align:center;">
+      </div>
+      <div class="msg" id="tmsg"></div>
+      <button type="submit" class="btn btn-primary btn-full" id="tbtn">Verify &amp; Login</button>
+    </form>
+  </div>
+
+</div>
+<script src="js/main.js"></script>
+<script>
+async function doLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('lbtn');
+  const msg = document.getElementById('lmsg');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Verifying...';
+
+  const res  = await fetch('/api/login', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ username: document.getElementById('lu').value,
+                           password: document.getElementById('lp').value })
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById('step1').classList.add('hidden');
+    document.getElementById('step2').classList.remove('hidden');
+    if (data.qr_code) {
+      document.getElementById('qrSetup').classList.remove('hidden');
+      document.getElementById('loginQr').src = 'data:image/png;base64,' + data.qr_code;
+      document.getElementById('loginSecret').textContent = data.totp_secret || '';
+    }
+    document.getElementById('otp').focus();
+  } else {
+    showMsg(msg, data.msg, 'err');
+    btn.disabled = false;
+    btn.textContent = 'Continue →';
+  }
+}
+
+async function do2FA(e) {
+  e.preventDefault();
+  const btn = document.getElementById('tbtn');
+  const msg = document.getElementById('tmsg');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Checking...';
+
+  const res  = await fetch('/api/verify-2fa', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ code: document.getElementById('otp').value })
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    showMsg(msg, 'Login successful! Redirecting...', 'ok');
+    setTimeout(() => window.location.href = 'dashboard.html', 700);
+  } else {
+    showMsg(msg, data.msg, 'err');
+    btn.disabled = false;
+    btn.textContent = 'Verify & Login';
+    document.getElementById('otp').value = '';
+    document.getElementById('otp').focus();
+  }
+}
+</script>
+</body>
+</html>
