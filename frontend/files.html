@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Files — SecureFS</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="appnav">
+  <div class="nav-brand">🔐 SecureFS</div>
+  <div class="nav-links">
+    <a href="dashboard.html" class="nl">Dashboard</a>
+    <a href="files.html"     class="nl active">My Files</a>
+    <a href="upload.html"    class="nl">Upload</a>
+    <a href="share.html"     class="nl">Sharing</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="navUser"></span>
+    <button onclick="logout()" class="btn btn-ghost btn-sm">Logout</button>
+  </div>
+</nav>
+
+<main class="appmain">
+  <div class="pg-head">
+    <h1>File Manager</h1>
+    <a href="upload.html" class="btn btn-primary">+ Upload</a>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabMineBtn"   onclick="switchTab('mine')">My Files</button>
+    <button class="tab"        id="tabShareBtn"  onclick="switchTab('shared')">Shared with Me</button>
+  </div>
+
+  <div id="tabMine">
+    <div id="myList" class="tbl-wrap">Loading...</div>
+  </div>
+  <div id="tabShared" class="hidden">
+    <div id="sharedList" class="tbl-wrap">Loading...</div>
+  </div>
+</main>
+
+<!-- Share modal -->
+<div class="overlay hidden" id="shareModal">
+  <div class="modal">
+    <h3>Share File</h3>
+    <div class="fg">
+      <label>Share with (username)</label>
+      <input type="text" id="sTarget" placeholder="recipient_username">
+    </div>
+    <div class="fg">
+      <label>Expires in days (leave blank = never)</label>
+      <input type="number" id="sDays" placeholder="e.g. 7" min="1">
+    </div>
+    <div class="fg">
+      <label style="display:flex;align-items:center;gap:.5rem">
+        <input type="checkbox" id="sCanDl" checked> Allow download
+      </label>
+    </div>
+    <div class="msg" id="sMsg"></div>
+    <div class="modal-acts">
+      <button class="btn btn-ghost" onclick="closeShareModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doShare()">Share</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
+<script>
+let currentFid = null;
+let allData    = {};
+
+async function load() {
+  const me = await fetch('/api/me').then(r => r.json());
+  if (!me.logged_in) { window.location.href = 'login.html'; return; }
+  document.getElementById('navUser').textContent = me.username;
+
+  const data = await fetch('/api/files').then(r => r.json());
+  if (!data.ok) return;
+  allData = data;
+  renderMine(data.my_files);
+  renderShared(data.shared_files);
+}
+
+function renderMine(files) {
+  const el = document.getElementById('myList');
+  if (!files.length) {
+    el.innerHTML = '<p class="empty">No files yet. <a href="upload.html">Upload your first file!</a></p>';
+    return;
+  }
+  el.innerHTML = `
+    <table class="ftbl">
+      <thead>
+        <tr>
+          <th>Name</th><th>Size</th><th>Type</th>
+          <th>Encrypted</th><th>Uploaded</th><th>Downloads</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${files.map(f => `
+          <tr>
+            <td>${fileIcon(f.type)} ${f.name}</td>
+            <td>${f.size}</td>
+            <td><code>${f.type || '—'}</code></td>
+            <td class="${f.encrypted ? 'tg' : 'tr'}">${f.encrypted ? '🔒 Yes' : '🔓 No'}</td>
+            <td>${f.uploaded}</td>
+            <td>${f.downloads}</td>
+            <td>
+              <div class="acts">
+                <button class="btn btn-sm btn-primary" onclick="dlFile(${f.id})">⬇ Download</button>
+                <button class="btn btn-sm btn-outline" onclick="openShare(${f.id})">🔗 Share</button>
+                <button class="btn btn-sm btn-danger"  onclick="delFile(${f.id})">🗑</button>
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderShared(files) {
+  const el = document.getElementById('sharedList');
+  if (!files.length) {
+    el.innerHTML = '<p class="empty">Nothing shared with you yet.</p>';
+    return;
+  }
+  el.innerHTML = `
+    <table class="ftbl">
+      <thead>
+        <tr><th>Name</th><th>Owner</th><th>Size</th><th>Can Download</th><th>Shared</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        ${files.map(f => `
+          <tr>
+            <td>${fileIcon(f.type)} ${f.name}</td>
+            <td>${f.owner}</td>
+            <td>${f.size}</td>
+            <td>${f.can_download ? '✅' : '❌'}</td>
+            <td>${f.shared_at}</td>
+            <td>${f.can_download
+              ? `<button class="btn btn-sm btn-primary" onclick="dlFile(${f.id})">⬇ Download</button>`
+              : '—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function switchTab(tab) {
+  document.getElementById('tabMineBtn').classList.toggle('active',  tab === 'mine');
+  document.getElementById('tabShareBtn').classList.toggle('active', tab === 'shared');
+  document.getElementById('tabMine').classList.toggle('hidden',   tab !== 'mine');
+  document.getElementById('tabShared').classList.toggle('hidden', tab !== 'shared');
+}
+
+function dlFile(id) { window.location.href = '/api/download/' + id; }
+
+async function delFile(id) {
+  if (!confirm('Delete this file? This cannot be undone.')) return;
+  const data = await fetch('/api/delete/' + id, { method: 'DELETE' }).then(r => r.json());
+  if (data.ok) load();
+  else alert(data.msg);
+}
+
+function openShare(fid) {
+  currentFid = fid;
+  document.getElementById('sTarget').value = '';
+  document.getElementById('sDays').value   = '';
+  document.getElementById('sCanDl').checked = true;
+  document.getElementById('sMsg').className = 'msg';
+  document.getElementById('shareModal').classList.remove('hidden');
+}
+function closeShareModal() { document.getElementById('shareModal').classList.add('hidden'); }
+
+async function doShare() {
+  const res  = await fetch('/api/share', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      file_id:         currentFid,
+      target_username: document.getElementById('sTarget').value,
+      can_download:    document.getElementById('sCanDl').checked,
+      days_valid:      document.getElementById('sDays').value || null,
+    })
+  });
+  const data = await res.json();
+  showMsg(document.getElementById('sMsg'), data.msg, data.ok ? 'ok' : 'err');
+  if (data.ok) setTimeout(closeShareModal, 1200);
+}
+
+load();
+</script>
+</body>
+</html>
