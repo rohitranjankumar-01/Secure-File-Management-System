@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — SecureFS</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="appnav">
+  <div class="nav-brand">🔐 SecureFS</div>
+  <div class="nav-links">
+    <a href="dashboard.html" class="nl active">Dashboard</a>
+    <a href="files.html"     class="nl">My Files</a>
+    <a href="upload.html"    class="nl">Upload</a>
+    <a href="share.html"     class="nl">Sharing</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="navUser"></span>
+    <button onclick="logout()" class="btn btn-ghost btn-sm">Logout</button>
+  </div>
+</nav>
+
+<main class="appmain">
+  <div class="pg-head">
+    <div>
+      <h1>Dashboard</h1>
+      <p id="welcomeMsg">Loading...</p>
+    </div>
+    <a href="upload.html" class="btn btn-primary">+ Upload File</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">📁</div>
+      <div class="stat-val" id="sFiles">—</div>
+      <div class="stat-lbl">My Files</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔒</div>
+      <div class="stat-val" id="sEnc">—</div>
+      <div class="stat-lbl">Encrypted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🤝</div>
+      <div class="stat-val" id="sShared">—</div>
+      <div class="stat-lbl">Shared with Me</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-val" id="sAlerts">—</div>
+      <div class="stat-lbl">Security Alerts</div>
+    </div>
+  </div>
+
+  <!-- Two panels -->
+  <div class="dash-grid">
+    <div class="panel">
+      <h3>Recent Files</h3>
+      <div id="recentFiles">Loading...</div>
+    </div>
+    <div class="panel">
+      <h3>Security Log</h3>
+      <div id="secLog">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="panel">
+    <h3>Quick Actions</h3>
+    <div class="qa-grid">
+      <a href="upload.html" class="qa-btn">📤 Upload File</a>
+      <a href="files.html"  class="qa-btn">📂 Browse Files</a>
+      <a href="share.html"  class="qa-btn">🔗 Share a File</a>
+    </div>
+  </div>
+</main>
+
+<script src="js/main.js"></script>
+<script>
+async function load() {
+  // Auth check
+  const me = await fetch('/api/me').then(r => r.json());
+  if (!me.logged_in) { window.location.href = 'login.html'; return; }
+  document.getElementById('navUser').textContent    = me.username;
+  document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + me.username + '!';
+
+  // Files
+  const fd = await fetch('/api/files').then(r => r.json());
+  if (fd.ok) {
+    const mf = fd.my_files, sf = fd.shared_files;
+    document.getElementById('sFiles').textContent  = mf.length;
+    document.getElementById('sEnc').textContent    = mf.filter(f => f.encrypted).length;
+    document.getElementById('sShared').textContent = sf.length;
+
+    const rf = document.getElementById('recentFiles');
+    if (!mf.length) {
+      rf.innerHTML = '<p class="empty">No files yet. <a href="upload.html">Upload one!</a></p>';
+    } else {
+      rf.innerHTML = mf.slice(0, 6).map(f =>
+        `<div class="frow">
+           <span>${fileIcon(f.type)}</span>
+           <span class="frow-name">${f.name}</span>
+           <span class="frow-size">${f.size}</span>
+           <span class="${f.encrypted ? 'enc-y' : 'enc-n'}">${f.encrypted ? '🔒' : '🔓'}</span>
+         </div>`
+      ).join('');
+    }
+  }
+
+  // Logs
+  const ld = await fetch('/api/logs').then(r => r.json());
+  if (ld.ok) {
+    const alerts = ld.logs.filter(l => l.severity !== 'INFO').length;
+    document.getElementById('sAlerts').textContent = alerts;
+
+    const sl = document.getElementById('secLog');
+    if (!ld.logs.length) {
+      sl.innerHTML = '<p class="empty">No events yet.</p>';
+    } else {
+      sl.innerHTML = ld.logs.slice(0, 8).map(l =>
+        `<div class="lrow ${l.severity.toLowerCase()}">
+           <span class="lbadge">${l.severity}</span>
+           <span class="laction">${l.action}</span>
+           <span class="ltime">${(l.ts || '').slice(0, 10)}</span>
+         </div>`
+      ).join('');
+    }
+  }
+}
+load();
+</script>
+</body>
+</html>
