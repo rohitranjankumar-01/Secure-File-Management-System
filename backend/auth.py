@@ -142,4 +142,29 @@ def _record_fail(user_id: int, username: str, ip: str):
 
 # ── Two-Factor Authentication ───────────────────────────────────────────────────────────
 
+def verify_totp_code(user_id: int, totp_secret: str, code: str) -> bool:
+    """Return True if the 6-digit TOTP code is valid (±1 window = ±30 s)."""
+    result = pyotp.TOTP(totp_secret).verify(code.strip(), valid_window=1)
+    log_event(user_id, "2FA_OK" if result else "2FA_FAIL", "",
+              "INFO" if result else "WARNING")
+    return result
 
+
+def confirm_2fa(user_id: int):
+    """Mark 2FA as set up once user successfully verifies for the first time."""
+    conn = get_conn()
+    conn.execute("UPDATE users SET tfa_confirmed=1 WHERE id=?", (user_id,))
+    conn.commit()
+    conn.close()
+    log_event(user_id, "2FA_ENABLED", "", "INFO")
+
+
+def make_qr_base64(username: str, totp_secret: str) -> str:
+    """Return a base64-encoded PNG QR code for Google Authenticator."""
+    uri = pyotp.TOTP(totp_secret).provisioning_uri(
+        name=username, issuer_name="SecureFS"
+    )
+    img    = qrcode.make(uri)
+    buf    = io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
