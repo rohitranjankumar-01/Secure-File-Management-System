@@ -66,7 +66,7 @@ def static_pages(fname):
     return send_from_directory(_FRONTEND, fname)
 
 
-# ── Auth routes ───────────────────────────────────────────────────────────────
+# ── Authentication routes ───────────────────────────────────────────────────────────────
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
