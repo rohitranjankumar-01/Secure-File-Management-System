@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sharing — SecureFS</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="appnav">
+  <div class="nav-brand">🔐 SecureFS</div>
+  <div class="nav-links">
+    <a href="dashboard.html" class="nl">Dashboard</a>
+    <a href="files.html"     class="nl">My Files</a>
+    <a href="upload.html"    class="nl">Upload</a>
+    <a href="share.html"     class="nl active">Sharing</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="navUser"></span>
+    <button onclick="logout()" class="btn btn-ghost btn-sm">Logout</button>
+  </div>
+</nav>
+
+<main class="appmain">
+  <div class="pg-head">
+    <div>
+      <h1>File Sharing</h1>
+      <p>Share encrypted files with other registered users. Access is controlled per-file.</p>
+    </div>
+  </div>
+
+  <!-- Share a file -->
+  <div class="share-card">
+    <h3>🔗 Share a File</h3>
+    <div class="fg">
+      <label>Select File</label>
+      <select id="shareFile">
+        <option value="">— Loading your files... —</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Share with (username)</label>
+      <input type="text" id="shareTarget" placeholder="Enter recipient's username">
+    </div>
+    <div class="fg">
+      <label>Allow Download</label>
+      <div class="toggle-row">
+        <label class="tgl">
+          <input type="checkbox" id="shareDl" checked>
+          <span class="tgl-slider"></span>
+        </label>
+        <span id="dlTxt">Yes — recipient can download</span>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Expires in (days) — leave blank for permanent</label>
+      <input type="number" id="shareDays" placeholder="e.g. 7" min="1">
+    </div>
+    <div class="msg" id="shareMsg"></div>
+    <button class="btn btn-primary" onclick="doShare()">🔗 Share File</button>
+  </div>
+
+  <!-- Revoke a share -->
+  <div class="share-card">
+    <h3>🚫 Revoke Access</h3>
+    <div class="fg">
+      <label>Select File</label>
+      <select id="revokeFile">
+        <option value="">— Select a file —</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Remove access for (username)</label>
+      <input type="text" id="revokeTarget" placeholder="Enter username">
+    </div>
+    <div class="msg" id="revokeMsg"></div>
+    <button class="btn btn-danger" onclick="doRevoke()">🚫 Revoke Access</button>
+  </div>
+</main>
+
+<script src="js/main.js"></script>
+<script>
+async function load() {
+  const me = await fetch('/api/me').then(r => r.json());
+  if (!me.logged_in) { window.location.href = 'login.html'; return; }
+  document.getElementById('navUser').textContent = me.username;
+
+  const data = await fetch('/api/files').then(r => r.json());
+  if (data.ok && data.my_files.length) {
+    const opts = data.my_files.map(f =>
+      `<option value="${f.id}">${f.name}</option>`).join('');
+    document.getElementById('shareFile').innerHTML  = '<option value="">— Select a file —</option>' + opts;
+    document.getElementById('revokeFile').innerHTML = '<option value="">— Select a file —</option>' + opts;
+  } else {
+    document.getElementById('shareFile').innerHTML  = '<option>No files uploaded yet</option>';
+    document.getElementById('revokeFile').innerHTML = '<option>No files uploaded yet</option>';
+  }
+}
+
+document.getElementById('shareDl').addEventListener('change', function() {
+  document.getElementById('dlTxt').textContent =
+    this.checked ? 'Yes — recipient can download' : 'No — view metadata only';
+});
+
+async function doShare() {
+  const fid    = document.getElementById('shareFile').value;
+  const target = document.getElementById('shareTarget').value.trim();
+  const msg    = document.getElementById('shareMsg');
+  if (!fid || !target) { showMsg(msg, 'Please select a file and enter a username.', 'err'); return; }
+
+  const res  = await fetch('/api/share', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      file_id:         parseInt(fid),
+      target_username: target,
+      can_download:    document.getElementById('shareDl').checked,
+      days_valid:      document.getElementById('shareDays').value || null,
+    })
+  });
+  const data = await res.json();
+  showMsg(msg, data.msg, data.ok ? 'ok' : 'err');
+}
+
+async function doRevoke() {
+  const fid    = document.getElementById('revokeFile').value;
+  const target = document.getElementById('revokeTarget').value.trim();
+  const msg    = document.getElementById('revokeMsg');
+  if (!fid || !target) { showMsg(msg, 'Please select a file and enter a username.', 'err'); return; }
+
+  const res  = await fetch('/api/revoke-share', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ file_id: parseInt(fid), target_username: target })
+  });
+  const data = await res.json();
+  showMsg(msg, data.msg, data.ok ? 'ok' : 'err');
+}
+
+load();
+</script>
+</body>
+</html>
