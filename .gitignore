@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+venv/
+env/
+.venv/
+
+# Sensitive — NEVER commit these
+database_files/
+encrypted_files/
+uploads/
+logs/
+frontend/static/qr/
+
+# Environment
+.env
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
