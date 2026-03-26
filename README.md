@@ -46,6 +46,12 @@ securefs/
 │   └── js/main.js
 ├── encrypted_files/   ← AES-encrypted blobs stored here
 ├── database_files/    ← SQLite DB + Fernet key (auto-created)
+├── logs/
+├── uploads/
+├── .gitignore
+├── .python-version
+├── README.md
+├── render.yaml
 └── requirements.txt
 ```
 
@@ -61,22 +67,4 @@ securefs/
 - **Discretionary Access Control** (owner + share model)
 - **Full audit logging** of all security events
 
-## GitHub Contribution Plan (15 commits)
 
-| # | Module | File(s) |
-|---|--------|---------|
-| 1 | Project init | README, .gitignore, requirements.txt |
-| 2 | Flask server | backend/app.py |
-| 3 | Database schema | backend/db.py |
-| 4 | Encryption | backend/crypto.py |
-| 5 | Security logger | backend/logger.py |
-| 6 | User registration | backend/auth.py (register_user) |
-| 7 | Password hashing | backend/auth.py (bcrypt section) |
-| 8 | Login + lockout | backend/auth.py (login_user, _record_fail) |
-| 9 | Two-factor auth | backend/auth.py (verify_totp_code, make_qr_base64) |
-| 10 | File upload | backend/files.py (upload_file) |
-| 11 | File encryption pipeline | backend/files.py + crypto.py |
-| 12 | File download | backend/files.py (download_file) |
-| 13 | File sharing | backend/files.py (share_file, revoke_share) |
-| 14 | Malware detection | backend/files.py (_scan function) |
-| 15 | Frontend UI | frontend/ (all HTML, CSS, JS) |
