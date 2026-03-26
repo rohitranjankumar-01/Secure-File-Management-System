@@ -140,7 +140,7 @@ def _record_fail(user_id: int, username: str, ip: str):
     log_event(user_id, "LOGIN_FAIL", f"attempt {attempts}/{MAX_ATTEMPTS}", severity, ip)
 
 
-# ── Two-Factor Authentication ───────────────────────────────────────────────────────────
+# ── Two-Factor Auth ───────────────────────────────────────────────────────────
 
 def verify_totp_code(user_id: int, totp_secret: str, code: str) -> bool:
     """Return True if the 6-digit TOTP code is valid (±1 window = ±30 s)."""
