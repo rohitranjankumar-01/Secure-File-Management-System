@@ -60,12 +60,25 @@ def _scan(data: bytes, name: str):
     """Return (safe:bool, reason:str)."""
     if _BAD_EXT.search(name):
         return False, f"Suspicious double extension in '{name}'"
-    low = data[:4096].lower()
-    for sig in _SIGNATURES:
-        if sig.lower() in low:
-            return False, f"Malware pattern detected"
-    if b"\x00" in data[:256]:
-        return False, "Null-byte injection in file header"
+    
+    # Get file extension
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+    
+    # Skip null-byte check for binary formats (images, zip, mp4, mp3)
+    binary_exts = {"png", "jpg", "jpeg", "gif", "zip", "mp4", "mp3"}
+    if ext not in binary_exts:
+        if b"\x00" in data[:256]:
+            return False, "Null-byte injection in file header"
+    
+    # Only scan text portion for malware signatures
+    try:
+        text_sample = data[:4096].decode("utf-8", errors="ignore")
+        for sig in _SIGNATURES:
+            if sig.decode("utf-8", errors="ignore").lower() in text_sample.lower():
+                return False, "Malware pattern detected"
+    except Exception:
+        pass
+    
     return True, "clean"
 
 
