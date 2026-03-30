@@ -14,7 +14,7 @@ _ENC_DIR = os.path.abspath(
 
 ALLOWED_EXT = {
     "txt", "pdf", "png", "jpg", "jpeg", "gif",
-    "docx", "xlsx", "pptx", "csv", "zip", "mp4", "mp3"
+    "docx", "xlsx", "pptx", "csv", "mp3"
 }
 MAX_SIZE = 50 * 1024 * 1024  # 50 MB
 
@@ -60,27 +60,33 @@ def _scan(data: bytes, name: str):
     """Return (safe:bool, reason:str)."""
     if _BAD_EXT.search(name):
         return False, f"Suspicious double extension in '{name}'"
-    
-    # Get file extension
+
+    # All known binary formats — skip null byte check for these
+    binary_exts = {
+        "png", "jpg", "jpeg", "gif",       # images
+        "pdf",                              # pdf
+        "docx", "xlsx", "pptx",            # office (zip-based)
+        "mp3", "mp4",                      # media
+        "zip",                             # archives
+    }
     ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
-    
-    # Skip null-byte check for binary formats (images, zip, mp4, mp3)
-    binary_exts = {"png", "jpg", "jpeg", "gif", "zip", "mp4", "mp3"}
+
+    # Only do null-byte check on text files
     if ext not in binary_exts:
         if b"\x00" in data[:256]:
             return False, "Null-byte injection in file header"
-    
-    # Only scan text portion for malware signatures
+
+    # Scan only decoded text for malware signatures
     try:
-        text_sample = data[:4096].decode("utf-8", errors="ignore")
+        sample = data[:4096].decode("utf-8", errors="ignore").lower()
         for sig in _SIGNATURES:
-            if sig.decode("utf-8", errors="ignore").lower() in text_sample.lower():
+            sig_str = sig.decode("utf-8", errors="ignore").lower()
+            if sig_str and sig_str in sample:
                 return False, "Malware pattern detected"
     except Exception:
         pass
-    
-    return True, "clean"
 
+    return True, "clean"
 
 # ── Upload ────────────────────────────────────────────────────────────────────
 
