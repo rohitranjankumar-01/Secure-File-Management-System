@@ -150,4 +150,20 @@ async function doUpload() {
   const res  = await fetch('/api/upload', { method: 'POST', body: fd });
   const data = await res.json();
 
+ if (data.ok) {
+    tick('c4', true);
+    await delay(200);
+    tick('c5', true);
+    showMsg(msg, data.msg, 'ok');
+    setTimeout(() => window.location.href = 'files.html', 1400);
+  } else {
+    tick('c4', false);
+    showMsg(msg, data.msg, 'err');
+    btn.disabled = false;
+    btn.innerHTML = '🔒 Encrypt &amp; Upload';
+  }
+}
+</script>
+</body>
+</html>
 
